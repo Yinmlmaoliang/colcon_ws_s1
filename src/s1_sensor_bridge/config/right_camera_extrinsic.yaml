@@ -1,0 +1,13 @@
+# Right rectified camera to LiDAR extrinsic calibration (FAST-LIVO2 format)
+# Rcl: rotation from LiDAR frame to camera frame
+# Pcl: translation from LiDAR frame to camera frame (meters)
+
+rotation_matrix:
+  rows: 3
+  cols: 3
+  data: [ -0.714517,  -0.699091,  -0.027135,
+           0.288686,  -0.259283,  -0.921647,
+           0.637280,  -0.666366,   0.387080]
+
+translation:
+  data: [ -0.001681,  -0.047333,   0.025348]

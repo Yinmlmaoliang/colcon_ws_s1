@@ -1,0 +1,25 @@
+# S1 Sensor Bridge Unified Configuration
+
+# Network Configuration
+camera:
+  server_ip: "192.168.2.2"
+  server_port: 8888
+  use_system_time: true  # Override image timestamps with system time (fixes timestamp lag)
+
+lidar:
+  device_ip: "192.168.2.159"
+  host_ip: "192.168.2.1"
+
+# Mounting Configuration
+is_upside_down: true  # true if the S1 device is mounted upside-down
+
+# Topic and Frame Configuration
+topic_prefix: "s1_01"
+sensor_link: "s1_01_sensor_link"  # Logical reference frame (always upright)
+lidar_frame: "s1_01_lidar_frame"
+left_camera_frame: "s1_01_left_camera_optical"
+right_camera_frame: "s1_01_right_camera_optical"
+
+# LiDAR Publishing Parameters
+lidar_publish_freq: 10.0
+lidar_xfer_format: 0  # 0=PointXYZRTL

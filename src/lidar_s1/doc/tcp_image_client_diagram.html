@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiDAR S1 TCP Image Client 原理图</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17;
+  --card-bg: #111827;
+  --card-border: #1e3a5f;
+  --accent: #38bdf8;
+  --accent2: #f472b6;
+  --accent3: #34d399;
+  --accent4: #fbbf24;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --code-bg: #1e293b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.header {
+  text-align: center;
+  padding: 40px 20px 20px;
+}
+
+.header h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 30px 0;
+}
+
+.flow-node {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  border-radius: 14px;
+  padding: 18px 28px;
+  min-width: 340px;
+  text-align: center;
+  position: relative;
+  animation: fadeInUp 0.6s ease both;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.flow-node:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(56, 189, 248, 0.15);
+}
+
+.flow-node .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+.flow-node .title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.flow-node .desc {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.flow-node.hardware { border-color: var(--accent4); }
+.flow-node.hardware .label { color: var(--accent4); }
+.flow-node.network { border-color: var(--accent2); }
+.flow-node.network .label { color: var(--accent2); }
+.flow-node.process { border-color: var(--accent); }
+.flow-node.process .label { color: var(--accent); }
+.flow-node.output { border-color: var(--accent3); }
+.flow-node.output .label { color: var(--accent3); }
+
+.flow-arrow {
+  width: 2px;
+  height: 36px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-arrow::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--accent), var(--accent2));
+}
+
+.flow-arrow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--accent2);
+}
+
+.flow-arrow .arrow-label {
+  position: absolute;
+  left: 20px;
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent2);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.split-row {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.section {
+  margin: 40px 0;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-left: 14px;
+  border-left: 3px solid var(--accent);
+}
+
+.protocol-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.proto-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--code-bg);
+  animation: fadeInUp 0.5s ease both;
+}
+
+.proto-bytes {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--accent4);
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.proto-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.proto-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.proto-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #2d3748;
+}
+
+.proto-group-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  padding-left: 14px;
+}
+
+.thread-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.thread-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 24px;
+  animation: fadeInUp 0.6s ease both;
+  transition: transform 0.3s;
+}
+
+.thread-card:hover {
+  transform: translateY(-2px);
+}
+
+.thread-card h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thread-card h3 .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+.thread-card ol {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+}
+
+.thread-card li {
+  counter-increment: step;
+  padding: 8px 0 8px 36px;
+  position: relative;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  border-left: 1px solid #2d3748;
+  margin-left: 10px;
+}
+
+.thread-card li::before {
+  content: counter(step);
+  position: absolute;
+  left: -11px;
+  width: 22px;
+  height: 22px;
+  background: var(--code-bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--accent);
+}
+
+.encoding-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--card-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+}
+
+.encoding-table th {
+  background: var(--code-bg);
+  padding: 14px 18px;
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.encoding-table td {
+  padding: 12px 18px;
+  font-size: 0.88rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.encoding-table tr:last-child td { border-bottom: none; }
+
+.encoding-table td:first-child {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent4);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+.badge-pink { background: rgba(244,114,182,0.15); color: var(--accent2); }
+.badge-green { background: rgba(52,211,153,0.15); color: var(--accent3); }
+.badge-yellow { background: rgba(251,191,36,0.15); color: var(--accent4); }
+
+.image-split {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  margin: 30px 0;
+  flex-wrap: wrap;
+}
+
+.img-block {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.img-visual {
+  width: 140px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 0 auto 10px;
+  border: 1px solid #2d3748;
+}
+
+.img-top {
+  height: 80px;
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.img-bottom {
+  height: 80px;
+  background: linear-gradient(135deg, #9333ea, #c084fc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.img-single {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+}
+
+.split-arrow {
+  font-size: 2.5rem;
+  color: var(--accent);
+  animation: arrowPulse 1.5s infinite;
+}
+
+.note-box {
+  background: rgba(56,189,248,0.08);
+  border: 1px solid rgba(56,189,248,0.25);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+.note-box strong {
+  color: var(--accent);
+}
+
+.code-inline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  background: var(--code-bg);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: var(--accent3);
+}
+
+.byte-map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.byte-cell {
+  width: 60px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  border-radius: 4px;
+  color: white;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.recv-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 20px 0;
+}
+
+.recv-step {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  min-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.recv-step .step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  background: var(--accent);
+  color: var(--bg);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.recv-arrow-sm {
+  width: 2px;
+  height: 16px;
+  position: relative;
+}
+
+.recv-arrow-sm::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: var(--card-border);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes arrowPulse {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  50% { transform: translateX(6px); opacity: 0.6; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>LiDAR S1 TCP Image Client</h1>
+  <p>tcp_image_client.cpp 数据接收与处理原理图</p>
+</div>
+
+<div class="container">
+
+  <!-- 1. Overall Data Flow -->
+  <div class="section">
+    <h2 class="section-title">整体数据流</h2>
+    <div class="flow-diagram">
+      <div class="flow-node hardware" style="animation-delay: 0s">
+        <div class="label">Hardware</div>
+        <div class="title">LiDAR S1 设备（双鱼眼相机）</div>
+        <div class="desc">固定 IP: 192.168.1.2 &nbsp;|&nbsp; 两路 1920x1200@10Hz 鱼眼图像</div>
+      </div>
+      <div class="flow-arrow"><span class="arrow-label">USB 3.0 RNDIS 网络</span></div>
+      <div class="flow-node network" style="animation-delay: 0.1s">
+        <div class="label">TCP Server (设备端)</div>
+        <div class="title">端口 :8888 &nbsp; 持续推送图像帧</div>
+        <div class="desc">两路鱼眼垂直拼接 → JPEG 压缩 → 自定义序列化 → TCP 发送</div>
+      </div>
+      <div class="flow-arrow"><span class="arrow-label">4字节长度头 + 序列化载荷</span></div>
+      <div class="flow-node process" style="animation-delay: 0.2s">
+        <div class="label">ROS2 Node (主机端)</div>
+        <div class="title">TCPImageClient &nbsp; (tcp_image_client.cpp)</div>
+        <div class="desc">TCP 接收 → 反序列化 → JPEG 解码 → 图像分割 → ROS Topic 发布</div>
+      </div>
+      <div class="flow-arrow"><span class="arrow-label">image_transport 发布</span></div>
+      <div class="split-row">
+        <div class="flow-node output" style="animation-delay: 0.3s">
+          <div class="label">Topic</div>
+          <div class="title">/fisheye/left/image_raw</div>
+          <div class="desc">上半部分 1920x1200 &nbsp; BGR8 原始像素</div>
+        </div>
+        <div class="flow-node output" style="animation-delay: 0.35s">
+          <div class="label">Topic</div>
+          <div class="title">/fisheye/right/image_raw</div>
+          <div class="desc">下半部分 1920x1200 &nbsp; BGR8 原始像素</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. TCP Protocol -->
+  <div class="section">
+    <h2 class="section-title">TCP 数据帧格式（接收协议）</h2>
+
+    <h3 style="font-size:1rem; color:var(--accent4); margin:16px 0 10px; font-family:'JetBrains Mono',monospace;">
+      字节布局可视化
+    </h3>
+    <div class="byte-map">
+      <div class="byte-cell" style="background:#b45309; width:120px;">4B 数据长度<br>(Big-Endian)</div>
+      <div class="byte-cell" style="background:#1e40af; width:60px;">4B seq</div>
+      <div class="byte-cell" style="background:#0e7490; width:60px;">4B sec</div>
+      <div class="byte-cell" style="background:#0e7490; width:60px;">4B nsec</div>
+      <div class="byte-cell" style="background:#7c3aed; width:60px;">4B len</div>
+      <div class="byte-cell" style="background:#7c3aed; width:90px;">frame_id<br>(变长)</div>
+      <div class="byte-cell" style="background:#be185d; width:60px;">4B len</div>
+      <div class="byte-cell" style="background:#be185d; width:80px;">format<br>"jpeg"</div>
+      <div class="byte-cell" style="background:#047857; width:60px;">4B len</div>
+      <div class="byte-cell" style="background:#047857; width:160px;">JPEG 压缩图像数据<br>(核心载荷，最大)</div>
+    </div>
+
+    <div class="protocol-layout">
+      <div class="proto-group-title">TCP 帧头（每帧的前 4 字节）</div>
+      <div class="proto-row">
+        <span class="proto-bytes">Byte 0–3</span>
+        <span class="proto-type">uint32_t (Big-Endian)</span>
+        <span class="proto-desc">后续载荷总长度 <span class="badge badge-yellow">网络字节序，需 ntohl() 转换</span></span>
+      </div>
+
+      <div class="proto-group">
+        <div class="proto-group-title">载荷：自定义序列化的 CompressedImage 消息</div>
+        <div class="proto-row">
+          <span class="proto-bytes">+0 ~ +3</span>
+          <span class="proto-type">uint32_t seq</span>
+          <span class="proto-desc">帧序列号（递增计数器）</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+4 ~ +7</span>
+          <span class="proto-type">int32_t sec</span>
+          <span class="proto-desc">时间戳 — 秒部分</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+8 ~ +11</span>
+          <span class="proto-type">int32_t nsec</span>
+          <span class="proto-desc">时间戳 — 纳秒部分</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+12 ~ +15</span>
+          <span class="proto-type">uint32_t len</span>
+          <span class="proto-desc">frame_id 字符串长度</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+16 ~ +N</span>
+          <span class="proto-type">char[] frame_id</span>
+          <span class="proto-desc">坐标系 ID 字符串（变长，无 null 终止）</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+N+1 ~ +N+4</span>
+          <span class="proto-type">uint32_t len</span>
+          <span class="proto-desc">format 字符串长度</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+N+5 ~ +M</span>
+          <span class="proto-type">char[] format</span>
+          <span class="proto-desc">图像编码格式名 <span class="badge badge-pink">通常为 "jpeg"</span></span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+M+1 ~ +M+4</span>
+          <span class="proto-type">uint32_t len</span>
+          <span class="proto-desc">JPEG 图像数据长度</span>
+        </div>
+        <div class="proto-row">
+          <span class="proto-bytes">+M+5 ~ end</span>
+          <span class="proto-type">uint8_t[] data</span>
+          <span class="proto-desc">JPEG 压缩图像字节流 <span class="badge badge-green">核心载荷</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <strong>重点说明：</strong>帧头的 4 字节长度字段使用 <span class="code-inline">Big-Endian</span>（网络字节序），
+      代码中通过 <span class="code-inline">ntohl()</span> 转换为主机字节序。<br>
+      但载荷内部的所有整型字段（seq, sec, nsec, 各 len）直接使用 <span class="code-inline">memcpy</span> 读取，
+      <strong>隐含假设设备端与主机端字节序一致（均为 Little-Endian / x86/ARM）</strong>。<br>
+      字符串采用「4 字节长度前缀 + 裸字节」格式，不包含 null 终止符。
+    </div>
+  </div>
+
+  <!-- 3. Receive Flow Detail -->
+  <div class="section">
+    <h2 class="section-title">receiveImages() 详细接收流程</h2>
+    <div class="recv-flow">
+      <div class="recv-step"><span class="step-num">1</span>检查连接状态 isConnected()，未连接则 sleep 100ms 后重试</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">2</span>readWithTimeout() 读取 4 字节 → 得到 data_size（帧头）</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">3</span>ntohl(data_size) 将大端序转为主机小端序</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">4</span>分配 vector&lt;uint8_t&gt;(data_size) 缓冲区</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">5</span>readWithTimeout() 循环 recv 读取完整载荷（处理 TCP 分包）</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">6</span>deserializeROSMessage() 按偏移解析各字段到 CompressedImageMsg</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">7</span>cv::imdecode(data, IMREAD_COLOR) 将 JPEG → BGR cv::Mat</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">8</span>按 height/2 分割：上半 = left 鱼眼，下半 = right 鱼眼</div>
+      <div class="recv-arrow-sm"></div>
+      <div class="recv-step"><span class="step-num">9</span>cv_bridge 转换 → image_transport 发布到两个 ROS Topic</div>
+    </div>
+  </div>
+
+  <!-- 4. Image Split -->
+  <div class="section">
+    <h2 class="section-title">图像分割示意</h2>
+    <div class="image-split">
+      <div class="img-block">
+        <div class="img-visual" style="width:140px;">
+          <div class="img-top">Left 鱼眼<br>0 ~ 1199 行</div>
+          <div class="img-bottom">Right 鱼眼<br>1200 ~ 2399 行</div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-dim);margin-top:8px">设备发送的拼接图<br><span class="code-inline">1920 x 2400</span> JPEG</div>
+      </div>
+      <div class="split-arrow">→</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="img-block">
+          <div class="img-visual" style="width:140px;">
+            <div class="img-single" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">Left 鱼眼<br>cv::Rect(0,0,w,h/2)</div>
+          </div>
+          <div style="font-size:0.82rem;color:var(--text-dim)">上半部 <span class="code-inline">1920 x 1200</span><br>/fisheye/left/image_raw</div>
+        </div>
+        <div class="img-block">
+          <div class="img-visual" style="width:140px;">
+            <div class="img-single" style="background:linear-gradient(135deg,#9333ea,#c084fc)">Right 鱼眼<br>cv::Rect(0,h/2,w,h/2)</div>
+          </div>
+          <div style="font-size:0.82rem;color:var(--text-dim)">下半部 <span class="code-inline">1920 x 1200</span><br>/fisheye/right/image_raw</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Thread Model -->
+  <div class="section">
+    <h2 class="section-title">三线程并发模型</h2>
+    <div class="thread-grid">
+      <div class="thread-card">
+        <h3><span class="dot" style="background:var(--accent3)"></span> Main Thread（主线程）</h3>
+        <ol>
+          <li>rclcpp::init() 初始化 ROS2</li>
+          <li>创建节点，声明参数 server_ip / server_port</li>
+          <li>构造 TCPImageClient（触发 initPublishers + startThreads）</li>
+          <li>rclcpp::spin(node) 阻塞运行 ROS 事件循环</li>
+          <li>Ctrl+C 退出时，析构函数 join 两个工作线程</li>
+        </ol>
+      </div>
+      <div class="thread-card">
+        <h3><span class="dot" style="background:var(--accent4)"></span> Connect Thread（重连线程）</h3>
+        <ol>
+          <li>每秒检查一次连接状态</li>
+          <li>若断开，调用 connectWithTimeout()</li>
+          <li>创建 socket → 设为非阻塞模式</li>
+          <li>发起 connect()，用 select() 等待 3 秒</li>
+          <li>连接成功后恢复阻塞模式、更新 sockfd_</li>
+          <li>失败则 sleep 1s 后继续循环</li>
+        </ol>
+      </div>
+      <div class="thread-card">
+        <h3><span class="dot" style="background:var(--accent2)"></span> Receive Thread（接收线程）</h3>
+        <ol>
+          <li>等待连接就绪</li>
+          <li>select() + recv() 读取 4 字节帧头</li>
+          <li>ntohl() 转换长度，分配缓冲区</li>
+          <li>循环 recv 直到读满全部载荷</li>
+          <li>deserializeROSMessage() 解析字段</li>
+          <li>cv::imdecode() JPEG 解码为 BGR</li>
+          <li>分割 → cv_bridge → 发布两路图像</li>
+          <li>异常时断开连接，由重连线程恢复</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Encoding Types -->
+  <div class="section">
+    <h2 class="section-title">编码类型与数据格式一览</h2>
+    <table class="encoding-table">
+      <thead>
+        <tr><th>阶段</th><th>编码/格式</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>设备端压缩</td>
+          <td><span class="badge badge-pink">JPEG</span></td>
+          <td>设备将原始双鱼眼拼接图 JPEG 压缩后发送，大幅降低 TCP 传输带宽</td>
+        </tr>
+        <tr>
+          <td>帧头长度字段</td>
+          <td><span class="badge badge-yellow">Big-Endian (网络序)</span></td>
+          <td>TCP 帧的前 4 字节使用网络字节序，代码用 ntohl() 转换</td>
+        </tr>
+        <tr>
+          <td>载荷内整型字段</td>
+          <td><span class="badge badge-blue">Little-Endian (隐含)</span></td>
+          <td>seq/sec/nsec/内部 len 直接 memcpy，假设设备端也是小端序</td>
+        </tr>
+        <tr>
+          <td>字符串编码</td>
+          <td><span class="badge badge-blue">Length-Prefixed</span></td>
+          <td>frame_id / format 均为「4 字节长度 + 裸字符串」，非 null 终止</td>
+        </tr>
+        <tr>
+          <td>JPEG 解码后</td>
+          <td><span class="badge badge-green">BGR8 (cv::Mat)</span></td>
+          <td>OpenCV imdecode(IMREAD_COLOR) 默认输出 BGR 三通道 8bit</td>
+        </tr>
+        <tr>
+          <td>ROS Topic 发布</td>
+          <td><span class="badge badge-green">sensor_msgs/Image BGR8</span></td>
+          <td>cv_bridge 设置 encoding = BGR8，以原始像素格式发布到 ROS Topic</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 7. Safety -->
+  <div class="section">
+    <h2 class="section-title">连接安全与异常处理机制</h2>
+    <div class="note-box">
+      <strong>非阻塞连接：</strong>使用 <span class="code-inline">fcntl(O_NONBLOCK)</span> 将 socket 设为非阻塞，
+      配合 <span class="code-inline">select()</span> 实现 3 秒连接超时，避免线程长时间挂起。<br><br>
+      <strong>线程安全：</strong><span class="code-inline">sock_mutex_</span> (std::mutex) 保护 sockfd_ 的读写；
+      <span class="code-inline">running_</span> 为 <span class="code-inline">std::atomic&lt;bool&gt;</span>，
+      确保跨线程信号传递的可见性。<br><br>
+      <strong>完整读取保证：</strong><span class="code-inline">readWithTimeout()</span> 内部循环调用 recv()，
+      累积 bytes_received 直到读满所需字节数，正确处理 TCP 分包/粘包问题。<br><br>
+      <strong>自动重连：</strong>接收线程在任何 recv 失败或解码异常时调用 <span class="code-inline">disconnect()</span>，
+      重连线程每秒检测到断开后自动发起重连，无需人工干预。<br><br>
+      <strong>超时分级：</strong>帧头读取超时 1 秒（检测连接断开），载荷数据读取超时 3 秒（容忍网络波动）。
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

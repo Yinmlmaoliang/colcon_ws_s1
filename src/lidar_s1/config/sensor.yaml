@@ -1,0 +1,16 @@
+# Sensor identification and frame configuration.
+# These values are used as default launch arguments and can be overridden on the
+# command line: ros2 launch lidars1 <file>.launch.py topic_prefix:=s1_02
+
+# TCP connection to the sensor device.
+server_ip: 192.168.2.2
+server_port: 8888
+
+# Prefix applied to all published image and camera_info topics.
+# Resulting topics: /<topic_prefix>/left/image_raw, /<topic_prefix>/left/image_rect, etc.
+topic_prefix: s1_01
+
+# TF frame IDs used in static_transform_publisher nodes.
+lidar_frame: s1_01_lidar_frame
+left_camera_frame: s1_01_left_camera_optical
+right_camera_frame: s1_01_right_camera_optical

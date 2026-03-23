@@ -1,0 +1,26 @@
+image_width: 1920
+image_height: 1200
+camera_name: right_fisheye
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [458.81484,   0.     , 959.64636,
+           0.     , 459.08801, 614.67361,
+           0.     ,   0.     ,   1.     ]
+distortion_model: equidistant
+distortion_coefficients:
+  rows: 1
+  cols: 4
+  data: [0.056243, 0.017367, -0.006934, 0.000480]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1., 0., 0.,
+         0., 1., 0.,
+         0., 0., 1.]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [458.81484,   0.     , 959.64636,   0.     ,
+           0.     , 459.08801, 614.67361,   0.     ,
+           0.     ,   0.     ,   1.     ,   0.     ]

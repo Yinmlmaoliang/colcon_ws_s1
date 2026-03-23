@@ -1,0 +1,23 @@
+# ROS 2 colcon workspace
+build/
+install/
+log/
+
+# Compressed files
+*.tar.gz
+*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# C++
+*.o
+*.so
+*.a
