@@ -2,7 +2,7 @@
 
 ROS 2 工作空间，包含以下功能包：
 
-- **lidar_s1**: 激光雷达驱动和处理
+- **lidar_s1**: 鱼眼相机ROS2驱动包
 - **livox_ros_driver2**: Livox 激光雷达 ROS 2 驱动
 - **s1_sensor_bridge**: S1 传感器桥接
 
