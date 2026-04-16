@@ -25,7 +25,6 @@
 #include "lddc.h"
 #include "comm/ldq.h"
 #include "comm/comm.h"
-#include "comm/pub_handler.h"
 
 #include <inttypes.h>
 #include <iostream>
@@ -77,10 +76,6 @@ Lddc::Lddc(int format, int multi_topic, int data_src, int output_type,
 #endif
 }
 #endif
-
-void Lddc::SetUseSystemTime(bool use_system_time) {
-  pub_handler().SetUseSystemTime(use_system_time);
-}
 
 Lddc::~Lddc() {
 #ifdef BUILDING_ROS1

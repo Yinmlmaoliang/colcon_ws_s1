@@ -9,7 +9,6 @@ camera:
 lidar:
   device_ip: "192.168.2.159"
   host_ip: "192.168.2.1"
-  use_system_time: true  # When true, use system time only if hardware is not synced (PTP/GPS)
 
 # Mounting Configuration
 is_upside_down: true  # true if the S1 device is mounted upside-down

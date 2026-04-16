@@ -161,7 +161,6 @@ def generate_launch_description():
             'xfer_format': int(config['lidar_xfer_format']),
             'publish_freq': float(config['lidar_publish_freq']),
             'frame_id': lidar_frame,
-            'use_system_time': config['lidar'].get('use_system_time', False),
         }],
         remappings=[
             ('livox/lidar', topic_prefix + '/lidar'),

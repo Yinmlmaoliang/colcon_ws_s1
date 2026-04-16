@@ -32,7 +32,6 @@
 namespace livox_ros {
 
 std::atomic<bool> PubHandler::is_timestamp_sync_;
-std::atomic<bool> PubHandler::use_system_time_(false);
 
 PubHandler &pub_handler() {
   static PubHandler handler;
@@ -76,10 +75,6 @@ void PubHandler::SetPointCloudConfig(const double publish_freq) {
 void PubHandler::SetImuDataCallback(ImuDataCallback cb, void* client_data) {
   imu_client_data_ = client_data;
   imu_callback_ = cb;
-}
-
-void PubHandler::SetUseSystemTime(bool use_system_time) {
-  use_system_time_.store(use_system_time);
 }
 
 void PubHandler::AddLidarsExtParam(LidarExtParameter& lidar_param) {
@@ -271,18 +266,6 @@ uint64_t PubHandler::GetEthPacketTimestamp(uint8_t timestamp_type, uint8_t* time
   LdsStamp time;
   memcpy(time.stamp_bytes, time_stamp, size);
 
-  // When use_system_time is true, only use system time if hardware is not synced
-  if (use_system_time_.load()) {
-    if (timestamp_type == kTimestampTypeNoSync) {
-      // Hardware not synced, use system time
-      return std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    } else {
-      // Hardware synced (PTP/GPS), use hardware timestamp
-      return time.stamp;
-    }
-  }
-
-  // Original behavior: use hardware timestamp if available
   if (timestamp_type == kTimestampTypeGptpOrPtp ||
       timestamp_type == kTimestampTypeGps) {
     return time.stamp;
