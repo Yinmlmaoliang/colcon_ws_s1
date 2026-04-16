@@ -90,6 +90,7 @@ class PubHandler {
   void AddLidarsExtParam(LidarExtParameter& extrinsic_params);
   void ClearAllLidarsExtrinsicParams();
   void SetImuDataCallback(ImuDataCallback cb, void* client_data);
+  void SetUseSystemTime(bool use_system_time);
 
  private:
   //thread to process raw data
@@ -128,6 +129,7 @@ class PubHandler {
   std::map<uint32_t, std::vector<PointXyzlt>> points_;
   std::map<uint32_t, LidarExtParameter> lidar_extrinsics_;
   static std::atomic<bool> is_timestamp_sync_;
+  static std::atomic<bool> use_system_time_;
   uint16_t lidar_listen_id_ = 0;
 };
 
